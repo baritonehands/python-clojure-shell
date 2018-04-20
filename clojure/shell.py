@@ -1,4 +1,4 @@
-from .repl import Context
+from .repl import Context, NamespaceAlias
 import argparse, nrepl, code
 
 class Shell(object):
@@ -11,6 +11,7 @@ class Shell(object):
         var = client.var
         new = client.new
         require = client.require
+        clj = NamespaceAlias(client, 'clojure.core')
         import_class = client.import_class
 
         code.interact(local=locals())
