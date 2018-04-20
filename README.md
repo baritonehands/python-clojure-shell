@@ -89,7 +89,7 @@ None
 
 Import a java class so it can be referenced by short name:
 
-```
+```python
 >>> import_class('java.util.HashMap')
 u'java.util.HashMap'
 >>> my_map = new('HashMap')
@@ -104,7 +104,6 @@ Look up the docstring for a clojure var:
 
 ```python
 >>> doc(frequencies)
--------------------------
 
 clojure.core/frequencies
 
