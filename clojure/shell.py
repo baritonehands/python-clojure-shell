@@ -1,4 +1,4 @@
-from .repl import Context, NamespaceAlias
+from .repl import Context, NamespaceAlias, snake_case
 import argparse, nrepl, code
 
 class Shell(object):
@@ -6,15 +6,33 @@ class Shell(object):
         self.nrepl_client = nrepl.connect("nrepl://%s:%d" % (host, port))
 
     def start(self):
-        repl = self.nrepl_client
-        client = Context(self.nrepl_client)
-        var = client.var
-        new = client.new
-        require = client.require
-        clj = NamespaceAlias(client, 'clojure.core')
-        import_class = client.import_class
+        local_vars = locals()
+        del local_vars['self']
 
-        code.interact(local=locals())
+        client = self.nrepl_client
+        ctx = Context(self.nrepl_client)
+
+        clj = NamespaceAlias(ctx, 'clojure.core')
+        repl = ctx.require('clojure.repl')
+
+        builtin_keys = set(dir(__builtins__))
+        def extract_syms(ns):
+            ns_alias = NamespaceAlias(ctx, ns)
+            for name in clj.map(clj.str, clj.keys(clj.ns_publics(clj.symbol(ns)))).eval():
+                if name not in builtin_keys:
+                    local_vars[snake_case(name)] = ns_alias[name]
+
+        clj_syms = extract_syms('clojure.core')
+        repl_syms = extract_syms('clojure.repl')
+
+        local_vars['var'] = ctx.var
+        local_vars['new'] = ctx.new
+        local_vars['require'] = ctx.require
+        local_vars['import_class'] = ctx.import_class
+        local_vars['clj'] = clj
+        local_vars['repl'] = repl
+
+        code.interact(local=local_vars)
         pass
 
 def main():

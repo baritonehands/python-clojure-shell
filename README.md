@@ -31,11 +31,30 @@ If you start from within a Leiningen project, all the code should be accessible 
 
 To use the pyclj-shell, there are some built in functions for easy REPL use:
 
+### Auto imports
+
+All of the vars from the clojure.core and clojure.repl namespaces have been auto-imported into the shell session. You
+can refer to them directly by their name. The unsupported characters such as !, ?, etc. have been mangled.
+
+For those names that conflicted with python's built-in module, you'll have to refer to them via the clj or repl namespace
+aliases.
+
+```python
+>>> mapcat # This function has no python equivalent, so it's auto imported
+#object[clojure.core$mapcat 0x221dbc0a "clojure.core$mapcat@221dbc0a"]
+
+>>> map
+<built-in function map>
+
+>>> clj.map
+#object[clojure.core$map 0x52b28bf6 "clojure.core$map@52b28bf6"]
+```  
+
 ### require
 
 Require a clojure namespace and assign to a python variable:
 
-```
+```python
 >>> s = require('clojure.string')
 >>> s.upper_case('foo')
 FOO
@@ -45,12 +64,11 @@ FOO
 
 Define a clojure var, or get a reference to existing var:
 
-```
+```python
 >>> my_range = var('my_range', range(100))
 #'user/my_range
->>> plus_r = var('+')
->>> reduce_r = var('reduce')
->>> reduce_r(plus_r, my_range)
+>>> plus = var('+')
+>>> clj.reduce(plus, my_range) # Must explicitly mention Clojure's reduce
 4950
 ```
 
@@ -58,7 +76,7 @@ Define a clojure var, or get a reference to existing var:
 
 Instantiate a java class:
 
-```
+```python
 >>> my_map = new('java.util.HashMap')
 #'user/G__765
 >>> my_map.put('foo', 'bar')
@@ -79,6 +97,39 @@ u'java.util.HashMap'
 >>> my_map
 {u'foo': u'bar'}
 ```
+
+### doc
+
+Look up the docstring for a clojure var:
+
+```python
+>>> doc(frequencies)
+-------------------------
+
+clojure.core/frequencies
+
+([coll])
+
+  Returns a map from distinct items in coll to the number of times
+  they appear.
+
+None
+```
+
+### Using repl results locally
+
+When using any of the above functions, the shell automatically evaluates the result when the shell calls repr(). If
+you want to use a remote result in a local python computation, you need to explicitly call eval():
+
+```python
+>>> clj.mapv(inc, range(5, 10)) + [1, 2, 3]
+Traceback (most recent call last):
+  File "<console>", line 1, in <module>
+TypeError: unsupported operand type(s) for +: 'FunctionCall' and 'list'
+
+>>> clj.mapv(inc, range(5, 10)).eval() + [1, 2, 3]
+[6, 7, 8, 9, 10, 1, 2, 3]
+``` 
 
 ## Cli Options
 

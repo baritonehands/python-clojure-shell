@@ -6,24 +6,41 @@ def py2clj(value):
     else:
         return edn.dumps(value)
 
+special_chars = {'!': 'BANG',
+                 '?': 'QMARK',
+                 '+': 'PLUS',
+                 '/': 'SLASH',
+                 '*': '_'}
+
+def replace_specials(s, invert=False):
+    for sym, desc in special_chars.iteritems():
+        if invert:
+            s = s.replace('_' + desc, sym)
+        else:
+            s = s.replace(sym, '_' + desc)
+    return s
+
 def camel_case(s):
     components = s.split('_')
     return components[0] + "".join(x.title() for x in components[1:])
 
 def kebab_case(s):
-    return s.replace('__BANG', '!').replace('_', '-')
+    return replace_specials(s, invert=True).replace('_', '-')
+
+def snake_case(s):
+    return replace_specials(s.replace('-', '_'))
 
 class Evaluation(object):
     def __init__(self, ctx):
         self.ctx = ctx
 
     def __repr__(self):
-        return str(self.get())
+        return str(self.eval())
 
     def __expr__(self):
         raise NotImplementedError()
 
-    def get(self):
+    def eval(self):
         return self.ctx.evaluate(self.__expr__())
 
 class MethodCall(Evaluation):
@@ -75,6 +92,9 @@ class Var(Evaluation):
         self.name = name
 
     def __getattr__(self, item):
+        return GetProperty(self.ctx, item, self.name)
+
+    def __getitem__(self, item):
         return GetProperty(self.ctx, item, self.name)
 
     def __setattr__(self, key, value):
@@ -140,7 +160,7 @@ class Context(object):
         return self.evaluate(imp)
 
     def evaluate(self, code):
-        print('Evaluating:', code)
+        print('Evaluating: %s' % (code, ))
         self.nrepl_client.write(dict(op="eval", code=code))
         return self.readall()
 
